@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Manejo y Organización de Datos — Aumovio</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --aumovio-red: #E2231A;
+    --aumovio-red-dark: #B81810;
+    --aumovio-black: #0E0E10;
+    --aumovio-graphite: #1E1E22;
+    --aumovio-gray: #2A2A30;
+    --aumovio-text: #F4F4F5;
+    --aumovio-muted: #9CA3AF;
+    --aumovio-accent: #00B0F0;
+    --aumovio-green: #22C55E;
+    --aumovio-amber: #F59E0B;
+    --slide-pad: 56px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--aumovio-black);
+    color: var(--aumovio-text);
+    overflow: hidden;
+  }
+  body { display: flex; flex-direction: column; }
+
+  /* Top bar */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 24px;
+    background: linear-gradient(90deg, var(--aumovio-graphite) 0%, var(--aumovio-black) 100%);
+    border-bottom: 2px solid var(--aumovio-red);
+    z-index: 100;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-logo {
+    width: 36px; height: 36px;
+    background: var(--aumovio-red);
+    border-radius: 6px;
+    display: grid; place-items: center;
+    font-weight: 900; color: white; font-size: 18px;
+    letter-spacing: -1px;
+  }
+  .brand-name { font-weight: 700; font-size: 15px; letter-spacing: 0.5px; }
+  .brand-sub  { font-size: 11px; color: var(--aumovio-muted); }
+  .top-actions { display: flex; gap: 8px; align-items: center; }
+  .btn {
+    background: var(--aumovio-gray);
+    border: 1px solid #3a3a42;
+    color: var(--aumovio-text);
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn:hover { background: var(--aumovio-red); border-color: var(--aumovio-red); }
+  .btn.active { background: var(--aumovio-red); border-color: var(--aumovio-red); }
+  .btn-ghost { background: transparent; }
+
+  /* Main stage */
+  .stage {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  .slide {
+    position: absolute; inset: 0;
+    padding: var(--slide-pad);
+    overflow: auto;
+    opacity: 0;
+    transform: translateX(40px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    pointer-events: none;
+  }
+  .slide.active {
+    opacity: 1; transform: translateX(0);
+    pointer-events: auto;
+  }
+  .slide h1 {
+    font-size: 44px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .slide h1 .accent { color: var(--aumovio-red); }
+  .slide h2 {
+    font-size: 30px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--aumovio-text);
+  }
+  .slide h2::before {
+    content: ''; display: inline-block;
+    width: 6px; height: 28px; background: var(--aumovio-red);
+    margin-right: 14px; vertical-align: -4px;
+    border-radius: 2px;
+  }
+  .slide h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+  .slide p, .slide li { font-size: 16px; line-height: 1.55; color: #D1D5DB; }
+  .slide .subtitle { font-size: 18px; color: var(--aumovio-muted); margin-bottom: 24px; }
+
+  /* Bottom bar */
+  .bottombar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 24px;
+    background: var(--aumovio-graphite);
+    border-top: 1px solid #2a2a30;
+    z-index: 100;
+  }
+  .progress {
+    flex: 1; margin: 0 20px;
+    height: 4px; background: #2a2a30; border-radius: 2px; overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%; background: var(--aumovio-red);
+    transition: width 0.3s ease;
+  }
+  .pager { font-size: 13px; color: var(--aumovio-muted); min-width: 80px; text-align: right; }
+
+  /* Title slide */
+  .title-slide {
+    display: flex; flex-direction: column; justify-content: center;
+    background: radial-gradient(circle at 20% 50%, rgba(226,35,26,0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0,176,240,0.08) 0%, transparent 50%);
+  }
+  .title-slide .eyebrow {
+    color: var(--aumovio-red);
+    font-weight: 700;
+    letter-spacing: 4px;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .title-slide h1 { font-size: 72px; margin-bottom: 16px; }
+  .title-slide .lead { font-size: 22px; color: var(--aumovio-muted); max-width: 720px; }
+  .title-meta {
+    margin-top: 48px; display: flex; gap: 32px;
+    color: var(--aumovio-muted); font-size: 13px;
+  }
+  .title-meta strong { color: var(--aumovio-text); display: block; font-size: 15px; }
+
+  /* Layouts */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 24px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 24px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 24px; }
+
+  .card {
+    background: var(--aumovio-graphite);
+    border: 1px solid #2a2a30;
+    border-left: 3px solid var(--aumovio-red);
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .card h3 { color: var(--aumovio-red); margin-bottom: 8px; }
+  .card .icon {
+    width: 44px; height: 44px; border-radius: 8px;
+    background: rgba(226,35,26,0.15);
+    display: grid; place-items: center;
+    font-size: 22px; margin-bottom: 12px;
+  }
+
+  /* KPI cards */
+  .kpi {
+    background: var(--aumovio-graphite);
+    border: 1px solid #2a2a30;
+    border-radius: 8px;
+    padding: 18px;
+    text-align: center;
+  }
+  .kpi .value {
+    font-size: 36px; font-weight: 800;
+    color: var(--aumovio-red); line-height: 1;
+  }
+  .kpi .label {
+    font-size: 12px; color: var(--aumovio-muted);
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-top: 6px;
+  }
+  .kpi .trend { font-size: 11px; margin-top: 4px; }
+  .kpi .trend.up   { color: var(--aumovio-green); }
+  .kpi .trend.down { color: var(--aumovio-amber); }
+
+  /* Lifecycle diagram */
+  .lifecycle {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px;
+    margin-top: 32px;
+  }
+  .stage-step {
+    background: var(--aumovio-graphite);
+    border: 2px solid #2a2a30;
+    border-radius: 10px;
+    padding: 20px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .stage-step:hover {
+    border-color: var(--aumovio-red);
+    transform: translateY(-4px);
+  }
+  .stage-step.selected {
+    border-color: var(--aumovio-red);
+    background: rgba(226,35,26,0.1);
+  }
+  .stage-step .num {
+    position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+    background: var(--aumovio-red); color: white;
+    width: 24px; height: 24px; border-radius: 50%;
+    font-size: 12px; font-weight: 700;
+    display: grid; place-items: center;
+  }
+  .stage-step .ico { font-size: 28px; margin: 10px 0; }
+  .stage-step .nom { font-weight: 600; font-size: 14px; }
+  .stage-detail {
+    margin-top: 24px;
+    background: var(--aumovio-graphite);
+    border-left: 4px solid var(--aumovio-red);
+    padding: 20px;
+    border-radius: 6px;
+    min-height: 120px;
+  }
+  .stage-detail h3 { color: var(--aumovio-red); margin-bottom: 8px; font-size: 20px; }
+
+  /* FAIR principles */
+  .fair {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+    margin-top: 32px;
+  }
+  .fair-card {
+    background: var(--aumovio-graphite);
+    border-radius: 12px; padding: 24px;
+    text-align: center;
+    border-top: 4px solid;
+  }
+  .fair-card .letter {
+    font-size: 56px; font-weight: 900; line-height: 1;
+    margin-bottom: 8px;
+  }
+  .fair-card h3 { margin-bottom: 8px; }
+  .fair-card p { font-size: 13px; }
+  .fair-card.f { border-color: var(--aumovio-red); }
+  .fair-card.f .letter { color: var(--aumovio-red); }
+  .fair-card.a { border-color: var(--aumovio-accent); }
+  .fair-card.a .letter { color: var(--aumovio-accent); }
+  .fair-card.i { border-color: var(--aumovio-amber); }
+  .fair-card.i .letter { color: var(--aumovio-amber); }
+  .fair-card.r { border-color: var(--aumovio-green); }
+  .fair-card.r .letter { color: var(--aumovio-green); }
+
+  /* Folder tree */
+  .tree {
+    background: var(--aumovio-graphite);
+    padding: 24px;
+    border-radius: 8px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.9;
+  }
+  .tree .folder { color: var(--aumovio-amber); }
+  .tree .file   { color: var(--aumovio-muted); }
+  .tree .good   { color: var(--aumovio-green); }
+  .tree .bad    { color: var(--aumovio-red); text-decoration: line-through; opacity: 0.7; }
+
+  /* Comparison table */
+  .compare { width: 100%; border-collapse: collapse; margin-top: 18px; }
+  .compare th, .compare td {
+    padding: 12px 14px; text-align: left;
+    border-bottom: 1px solid #2a2a30;
+    font-size: 14px;
+  }
+  .compare th {
+    background: var(--aumovio-graphite);
+    color: var(--aumovio-red);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 12px;
+  }
+  .compare .bad-col  { color: var(--aumovio-amber); }
+  .compare .good-col { color: var(--aumovio-green); }
+
+  /* Chart container */
+  .chart-wrap {
+    background: var(--aumovio-graphite);
+    border-radius: 8px;
+    padding: 18px;
+    height: 320px;
+    position: relative;
+  }
+  .chart-wrap h3 { color: var(--aumovio-text); margin-bottom: 10px; font-size: 15px; }
+
+  /* Classification levels */
+  .class-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 24px; }
+  .class-card {
+    border-radius: 8px; padding: 18px; color: white;
+    position: relative; overflow: hidden;
+  }
+  .class-card .lvl { font-size: 11px; letter-spacing: 2px; opacity: 0.8; }
+  .class-card .name { font-size: 22px; font-weight: 800; margin: 6px 0; }
+  .class-card .desc { font-size: 13px; opacity: 0.9; line-height: 1.4; }
+  .class-card.l1 { background: linear-gradient(135deg, #22C55E, #16A34A); }
+  .class-card.l2 { background: linear-gradient(135deg, #00B0F0, #0284C7); }
+  .class-card.l3 { background: linear-gradient(135deg, #F59E0B, #D97706); }
+  .class-card.l4 { background: linear-gradient(135deg, #E2231A, #991B1B); }
+
+  /* Quiz */
+  .quiz {
+    background: var(--aumovio-graphite);
+    border-radius: 12px;
+    padding: 28px;
+    max-width: 780px;
+    margin: 24px auto 0;
+  }
+  .quiz .question {
+    font-size: 20px; font-weight: 600; margin-bottom: 20px;
+  }
+  .quiz-opt {
+    display: block; width: 100%;
+    background: var(--aumovio-gray);
+    border: 2px solid transparent;
+    color: var(--aumovio-text);
+    padding: 14px 18px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 15px;
+    transition: all 0.15s;
+  }
+  .quiz-opt:hover:not(:disabled) { border-color: var(--aumovio-red); }
+  .quiz-opt.correct { background: rgba(34,197,94,0.2); border-color: var(--aumovio-green); }
+  .quiz-opt.wrong   { background: rgba(226,35,26,0.2); border-color: var(--aumovio-red); }
+  .quiz-feedback {
+    margin-top: 14px; padding: 12px; border-radius: 6px;
+    font-size: 14px; display: none;
+  }
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.ok   { background: rgba(34,197,94,0.15); color: var(--aumovio-green); }
+  .quiz-feedback.no   { background: rgba(226,35,26,0.15); color: #FCA5A5; }
+  .quiz-nav { display: flex; justify-content: space-between; margin-top: 18px; }
+  .quiz-score {
+    text-align: center; padding: 12px;
+    font-size: 14px; color: var(--aumovio-muted);
+  }
+  .quiz-score b { color: var(--aumovio-red); font-size: 16px; }
+
+  /* Best practices grid */
+  .practice {
+    background: var(--aumovio-graphite);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .practice .check {
+    background: var(--aumovio-green);
+    color: white; width: 28px; height: 28px;
+    border-radius: 50%; flex-shrink: 0;
+    display: grid; place-items: center;
+    font-weight: 700;
+  }
+  .practice .x {
+    background: var(--aumovio-red);
+    color: white; width: 28px; height: 28px;
+    border-radius: 50%; flex-shrink: 0;
+    display: grid; place-items: center;
+    font-weight: 700;
+  }
+  .practice h4 { font-size: 15px; margin-bottom: 4px; }
+  .practice p  { font-size: 13px; color: var(--aumovio-muted); }
+
+  /* Dashboard mode */
+  .dashboard-mode .slide { display: none; }
+  .dashboard-mode .stage { overflow: auto; padding: 24px; }
+  .dashboard-grid {
+    display: none;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+  }
+  .dashboard-mode .dashboard-grid { display: grid; }
+  .dashboard-mode .bottombar { display: none; }
+  .dash-card {
+    background: var(--aumovio-graphite);
+    border-radius: 10px;
+    padding: 18px;
+    border: 1px solid #2a2a30;
+  }
+  .dash-card.span-2 { grid-column: span 2; }
+  .dash-card.span-3 { grid-column: span 3; }
+  .dash-card.span-4 { grid-column: span 4; }
+  .dash-card h3 {
+    font-size: 13px; color: var(--aumovio-muted);
+    text-transform: uppercase; letter-spacing: 1.5px;
+    margin-bottom: 12px;
+  }
+
+  /* Final slide */
+  .end-slide {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    background: radial-gradient(circle at center, rgba(226,35,26,0.15) 0%, transparent 60%);
+  }
+  .end-slide h1 { font-size: 64px; }
+  .end-slide .qr {
+    width: 120px; height: 120px;
+    background: white; margin: 30px auto;
+    display: grid; place-items: center;
+    color: black; font-size: 12px;
+    border-radius: 8px;
+  }
+
+  /* Keyboard hint */
+  .kbd {
+    display: inline-block;
+    background: #2a2a30; border: 1px solid #3a3a42;
+    border-bottom-width: 2px;
+    border-radius: 4px; padding: 1px 6px;
+    font-family: 'Consolas', monospace;
+    font-size: 11px;
+  }
+
+  ul.checklist { list-style: none; padding: 0; }
+  ul.checklist li {
+    padding: 8px 0 8px 30px;
+    position: relative;
+  }
+  ul.checklist li::before {
+    content: '✓'; position: absolute; left: 0;
+    color: var(--aumovio-green); font-weight: 700;
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .pill.red { background: rgba(226,35,26,0.2); color: var(--aumovio-red); }
+  .pill.green { background: rgba(34,197,94,0.2); color: var(--aumovio-green); }
+  .pill.blue { background: rgba(0,176,240,0.2); color: var(--aumovio-accent); }
+
+  /* ===== Excel exercise styles ===== */
+  .excel-banner {
+    background: linear-gradient(135deg, #107C41 0%, #0F5C30 100%);
+    color: white;
+    padding: 14px 20px;
+    border-radius: 8px;
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 20px;
+  }
+  .excel-banner .xicon {
+    width: 42px; height: 42px;
+    background: white; color: #107C41;
+    display: grid; place-items: center;
+    border-radius: 6px;
+    font-weight: 900; font-size: 22px;
+  }
+  .excel-banner .xtitle  { font-size: 16px; font-weight: 700; }
+  .excel-banner .xmeta   { font-size: 12px; opacity: 0.9; }
+
+  .ex-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 22px; margin-top: 14px; }
+
+  .ex-section h3 {
+    font-size: 14px;
+    color: var(--aumovio-red);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #2a2a30;
+    padding-bottom: 6px;
+  }
+  .ex-steps { list-style: none; padding: 0; counter-reset: step; }
+  .ex-steps li {
+    counter-increment: step;
+    padding: 10px 0 10px 42px;
+    position: relative;
+    font-size: 14px;
+    color: #D1D5DB;
+    border-bottom: 1px dashed #2a2a30;
+  }
+  .ex-steps li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: 10px;
+    width: 28px; height: 28px;
+    background: var(--aumovio-red);
+    color: white;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 13px;
+  }
+
+  /* Mini spreadsheet */
+  .xls {
+    border: 1px solid #d4d4d8;
+    border-radius: 4px;
+    overflow: hidden;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 12px;
+    background: white;
+    color: #1f2937;
+  }
+  .xls .xls-tabs {
+    background: #f3f4f6;
+    border-bottom: 1px solid #d4d4d8;
+    padding: 4px 6px;
+    display: flex; gap: 0;
+    font-size: 11px;
+  }
+  .xls .xls-tab {
+    padding: 4px 10px;
+    background: #e5e7eb;
+    border: 1px solid #d4d4d8;
+    border-bottom: none;
+    border-radius: 2px 2px 0 0;
+    margin-right: 2px;
+    color: #4b5563;
+  }
+  .xls .xls-tab.active {
+    background: white;
+    color: #107C41;
+    font-weight: 600;
+  }
+  .xls .xls-formula {
+    background: white;
+    border-bottom: 1px solid #d4d4d8;
+    padding: 4px 8px;
+    font-family: 'Consolas', monospace;
+    color: #B81810;
+    font-size: 11px;
+  }
+  .xls table { width: 100%; border-collapse: collapse; }
+  .xls th, .xls td {
+    border: 1px solid #d4d4d8;
+    padding: 4px 8px;
+    text-align: left;
+    font-weight: normal;
+  }
+  .xls thead th {
+    background: #107C41;
+    color: white;
+    text-align: center;
+    font-weight: 600;
+    font-size: 11px;
+  }
+  .xls .row-num {
+    background: #f3f4f6;
+    text-align: center;
+    color: #6b7280;
+    width: 30px;
+    font-size: 11px;
+  }
+  .xls td.problem  { background: #FEE2E2; color: #991B1B; }
+  .xls td.input    { background: #FEF3C7; color: #92400E; }
+  .xls td.solved   { background: #D1FAE5; color: #065F46; font-family: 'Consolas', monospace; font-size: 11px; }
+  .xls td.dup      { background: #FCA5A5; color: #7F1D1D; font-weight: 600; }
+  .xls td.anom     { background: #FDE68A; color: #92400E; font-weight: 600; }
+
+  .formula-box {
+    background: var(--aumovio-black);
+    border: 1px solid var(--aumovio-red);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-top: 14px;
+    font-family: 'Consolas', monospace;
+    font-size: 13px;
+    color: #FCA5A5;
+    overflow-x: auto;
+  }
+  .formula-box .lbl {
+    display: block;
+    font-family: 'Segoe UI', sans-serif;
+    color: var(--aumovio-muted);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+  }
+
+  .download-cta {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--aumovio-red);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    margin-top: 16px;
+    transition: all 0.15s;
+  }
+  .download-cta:hover { background: var(--aumovio-red-dark); transform: translateY(-2px); }
+  .download-cta .ico {
+    background: white; color: var(--aumovio-red);
+    width: 28px; height: 28px;
+    border-radius: 4px;
+    display: grid; place-items: center;
+    font-weight: 900;
+  }
+
+  .level-chip {
+    display: inline-block;
+    background: var(--aumovio-amber);
+    color: #1E1E22;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .level-chip.basic { background: var(--aumovio-green); color: white; }
+  .level-chip.adv   { background: var(--aumovio-red); color: white; }
+
+  .takeaway {
+    background: rgba(0,176,240,0.1);
+    border-left: 4px solid var(--aumovio-accent);
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin-top: 16px;
+    font-size: 13px;
+    color: #BAE6FD;
+  }
+  .takeaway b { color: var(--aumovio-accent); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-logo">A</div>
+    <div>
+      <div class="brand-name">AUMOVIO · Training</div>
+      <div class="brand-sub">Manejo y Organización de Datos</div>
+    </div>
+  </div>
+  <div class="top-actions">
+    <button class="btn btn-ghost" id="btn-slide" onclick="setMode('slide')">📊 Presentación</button>
+    <button class="btn btn-ghost" id="btn-dash"  onclick="setMode('dash')">📈 Dashboard</button>
+    <button class="btn btn-ghost" onclick="toggleFullscreen()">⛶ Pantalla completa</button>
+    <button class="btn btn-ghost" onclick="window.print()">🖨 Imprimir</button>
+  </div>
+</div>
+
+<div class="stage" id="stage">
+
+  <!-- DASHBOARD VIEW -->
+  <div class="dashboard-grid" id="dashboard">
+    <div class="kpi"><div class="value">2.5 QB</div><div class="label">Datos / año generados global</div><div class="trend up">↑ 23% YoY</div></div>
+    <div class="kpi"><div class="value">68%</div><div class="label">Decisiones basadas en datos</div><div class="trend up">↑ vs 45% en 2020</div></div>
+    <div class="kpi"><div class="value">$12.9M</div><div class="label">Costo / año mala calidad de datos</div><div class="trend down">por empresa (Gartner)</div></div>
+    <div class="kpi"><div class="value">FAIR</div><div class="label">Estándar global de organización</div><div class="trend up">F·A·I·R</div></div>
+
+    <div class="dash-card span-2">
+      <h3>Distribución de tipos de datos</h3>
+      <div style="height:240px"><canvas id="dashChart1"></canvas></div>
+    </div>
+    <div class="dash-card span-2">
+      <h3>Madurez en manejo de datos (industria automotriz)</h3>
+      <div style="height:240px"><canvas id="dashChart2"></canvas></div>
+    </div>
+
+    <div class="dash-card span-2">
+      <h3>Ciclo de vida del dato</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+        <span class="pill red">1. Generar</span>
+        <span class="pill blue">2. Capturar</span>
+        <span class="pill green">3. Almacenar</span>
+        <span class="pill blue">4. Procesar</span>
+        <span class="pill green">5. Analizar</span>
+        <span class="pill red">6. Archivar / Eliminar</span>
+      </div>
+      <p style="margin-top:14px;font-size:13px;color:var(--aumovio-muted)">
+        Cada etapa tiene responsables, riesgos y políticas. Documentar el flujo previene pérdida y duplicación.
+      </p>
+    </div>
+    <div class="dash-card span-2">
+      <h3>Calidad de datos — dimensiones clave</h3>
+      <div style="height:200px"><canvas id="dashChart3"></canvas></div>
+    </div>
+
+    <div class="dash-card span-4">
+      <h3>Niveles de clasificación de información</h3>
+      <div class="class-grid" style="margin-top:8px">
+        <div class="class-card l1"><div class="lvl">NIVEL 1</div><div class="name">Pública</div><div class="desc">Comunicados, marketing, sitio web. Sin restricción.</div></div>
+        <div class="class-card l2"><div class="lvl">NIVEL 2</div><div class="name">Interna</div><div class="desc">Procedimientos, manuales. Sólo empleados.</div></div>
+        <div class="class-card l3"><div class="lvl">NIVEL 3</div><div class="name">Confidencial</div><div class="desc">Datos de cliente, planos, costos. Acceso por rol.</div></div>
+        <div class="class-card l4"><div class="lvl">NIVEL 4</div><div class="name">Restringida</div><div class="desc">PI, secretos comerciales, datos personales sensibles.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SLIDES ===== -->
+
+  <!-- Slide 1: Título -->
+  <section class="slide title-slide active">
+    <div class="eyebrow">CAPACITACIÓN AUMOVIO · MÓDULO 01</div>
+    <h1>Manejo y <span class="accent">Organización</span><br/>de Datos</h1>
+    <p class="lead">El recurso más valioso de la planta no son las máquinas, son los datos que producen. Aprende a tratarlos como tal.</p>
+    <div class="title-meta">
+      <div><strong>Duración</strong>60 minutos</div>
+      <div><strong>Audiencia</strong>Personal nuevo / operativo</div>
+      <div><strong>Nivel</strong>Introductorio</div>
+      <div><strong>Formato</strong>Presentación + Quiz</div>
+    </div>
+  </section>
+
+  <!-- Slide 2: Agenda -->
+  <section class="slide">
+    <h2>Agenda</h2>
+    <p class="subtitle">Lo que cubriremos hoy</p>
+    <div class="grid-3">
+      <div class="card"><div class="icon">🎯</div><h3>1. ¿Qué y por qué?</h3><p>Qué son los datos, por qué importan en Aumovio y la industria automotriz.</p></div>
+      <div class="card"><div class="icon">🔄</div><h3>2. Ciclo de vida</h3><p>Las 6 etapas por las que pasa cada dato, de su nacimiento a su archivo.</p></div>
+      <div class="card"><div class="icon">📚</div><h3>3. Tipos de datos</h3><p>Estructurados, semi-estructurados y no estructurados, con ejemplos reales.</p></div>
+      <div class="card"><div class="icon">⚖️</div><h3>4. Principios FAIR</h3><p>El estándar global para organizar información encontrable y reutilizable.</p></div>
+      <div class="card"><div class="icon">📁</div><h3>5. Organización práctica</h3><p>Carpetas, nomenclatura, versiones. El "antes vs después".</p></div>
+      <div class="card"><div class="icon">✨</div><h3>6. Calidad y seguridad</h3><p>Dimensiones de calidad, niveles de clasificación y buenas prácticas.</p></div>
+    </div>
+    <div class="card" style="margin-top:18px;border-left-color:#107C41;background:linear-gradient(90deg,rgba(16,124,65,0.15),transparent)">
+      <h3 style="color:#22C55E">📊 Bloque práctico · 6 ejercicios en Excel</h3>
+      <p>Cierra con manos al teclado: nomenclatura, limpieza, validación, BUSCARX, formato condicional y tablas dinámicas. Workbook descargable con datos reales de planta y soluciones.</p>
+    </div>
+  </section>
+
+  <!-- Slide 3: ¿Qué es? -->
+  <section class="slide">
+    <h2>¿Qué es el manejo de datos?</h2>
+    <p class="subtitle">Una definición simple para arrancar</p>
+    <div class="grid-2">
+      <div>
+        <p style="font-size:18px;margin-bottom:18px">
+          <b>Manejo de datos</b> es el conjunto de prácticas para
+          <span style="color:var(--aumovio-red);font-weight:600">capturar, organizar, proteger y usar</span>
+          la información que generan personas, máquinas y procesos — para que cualquiera (autorizado)
+          pueda encontrarla, confiar en ella y tomar decisiones con ella.
+        </p>
+        <p style="font-size:16px;color:var(--aumovio-muted)">
+          No es trabajo "del área de TI". Cada persona en Aumovio
+          <b style="color:var(--aumovio-text)">genera datos cada día</b>:
+          un reporte de turno, una medición de calidad, una orden de mantenimiento, un correo.
+        </p>
+      </div>
+      <div class="card" style="border-left-color:var(--aumovio-accent)">
+        <h3 style="color:var(--aumovio-accent)">🚗 En contexto automotriz</h3>
+        <p style="margin-top:8px">
+          Un sólo vehículo moderno genera <b>~25 GB por hora</b> entre sensores, ECUs y telemetría.
+          Una línea de producción tier-1 puede generar
+          <b style="color:var(--aumovio-red)">terabytes por día</b>.
+        </p>
+        <p style="margin-top:12px;font-size:14px;color:var(--aumovio-muted)">
+          Sin organización: datos perdidos, decisiones lentas, reclamos de cliente sin trazabilidad.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 4: Por qué importa -->
+  <section class="slide">
+    <h2>¿Por qué importa en Aumovio?</h2>
+    <p class="subtitle">4 razones que afectan directamente tu trabajo</p>
+    <div class="grid-4">
+      <div class="kpi"><div class="value">100%</div><div class="label">Trazabilidad IATF 16949</div></div>
+      <div class="kpi"><div class="value">-40%</div><div class="label">Tiempo en buscar info</div></div>
+      <div class="kpi"><div class="value">3×</div><div class="label">Velocidad de auditoría</div></div>
+      <div class="kpi"><div class="value">$0</div><div class="label">Costo de re-trabajo evitable</div></div>
+    </div>
+    <div class="grid-2" style="margin-top:24px">
+      <div class="card">
+        <h3>🛡 Cumplimiento</h3>
+        <p>La norma <b>IATF 16949</b> exige trazabilidad completa: ¿quién midió qué, cuándo, en qué máquina, con qué resultado? Sin datos organizados, no hay defensa ante el cliente.</p>
+      </div>
+      <div class="card">
+        <h3>⚡ Velocidad</h3>
+        <p>Un operador busca información en promedio <b>1.8 horas al día</b>. Una buena estructura recupera 30-40% de ese tiempo.</p>
+      </div>
+      <div class="card">
+        <h3>💰 Costo</h3>
+        <p>Gartner estima <b>$12.9 M USD/año</b> en pérdidas por mala calidad de datos. En una planta: scrap, paros, reclamos.</p>
+      </div>
+      <div class="card">
+        <h3>🧠 Mejora continua</h3>
+        <p>No puedes mejorar lo que no mides. Y no puedes medir lo que no encuentras. Los datos son el insumo del Kaizen.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 5: Ciclo de vida -->
+  <section class="slide">
+    <h2>Ciclo de vida del dato</h2>
+    <p class="subtitle">Haz click en cada etapa para ver detalles</p>
+    <div class="lifecycle">
+      <div class="stage-step" onclick="selectStage(1)">
+        <div class="num">1</div><div class="ico">⚙️</div><div class="nom">Generar</div>
+      </div>
+      <div class="stage-step" onclick="selectStage(2)">
+        <div class="num">2</div><div class="ico">📥</div><div class="nom">Capturar</div>
+      </div>
+      <div class="stage-step" onclick="selectStage(3)">
+        <div class="num">3</div><div class="ico">💾</div><div class="nom">Almacenar</div>
+      </div>
+      <div class="stage-step" onclick="selectStage(4)">
+        <div class="num">4</div><div class="ico">🔄</div><div class="nom">Procesar</div>
+      </div>
+      <div class="stage-step" onclick="selectStage(5)">
+        <div class="num">5</div><div class="ico">📊</div><div class="nom">Analizar</div>
+      </div>
+      <div class="stage-step" onclick="selectStage(6)">
+        <div class="num">6</div><div class="ico">📦</div><div class="nom">Archivar</div>
+      </div>
+    </div>
+    <div class="stage-detail" id="stageDetail">
+      <h3>👋 Selecciona una etapa</h3>
+      <p>Cada etapa tiene responsables, herramientas y riesgos específicos. Conocer el ciclo te permite ubicar tu rol en él.</p>
+    </div>
+  </section>
+
+  <!-- Slide 6: Tipos de datos -->
+  <section class="slide">
+    <h2>Tipos de datos</h2>
+    <p class="subtitle">No todos los datos se manejan igual</p>
+    <div class="grid-3">
+      <div class="card" style="border-left-color:var(--aumovio-green)">
+        <h3 style="color:var(--aumovio-green)">📊 Estructurados</h3>
+        <p><b>~20%</b> del total. Encajan en filas y columnas.</p>
+        <p style="margin-top:10px;font-size:13px;color:var(--aumovio-muted)"><b>Ejemplos:</b><br/>SAP, MES, bases SQL, Excel con formato, lecturas de PLC.</p>
+        <p style="margin-top:10px;font-size:13px;color:var(--aumovio-muted)"><b>Reto:</b> mantener integridad y catálogos.</p>
+      </div>
+      <div class="card" style="border-left-color:var(--aumovio-amber)">
+        <h3 style="color:var(--aumovio-amber)">🔧 Semi-estructurados</h3>
+        <p><b>~10%</b>. Tienen esquema flexible.</p>
+        <p style="margin-top:10px;font-size:13px;color:var(--aumovio-muted)"><b>Ejemplos:</b><br/>JSON, XML, logs de equipos, mensajes MQTT, respuestas de APIs.</p>
+        <p style="margin-top:10px;font-size:13px;color:var(--aumovio-muted)"><b>Reto:</b> parseo y validación de esquema.</p>
+      </div>
+      <div class="card" style="border-left-color:var(--aumovio-red)">
+        <h3 style="color:var(--aumovio-red)">📄 No estructurados</h3>
+        <p><b>~70%</b>. El mayor volumen — y el más difícil.</p>
+        <p style="margin-top:10px;font-size:13px;color:var(--aumovio-muted)"><b>Ejemplos:</b><br/>Correos, PDFs, fotos de scrap, videos de auditoría, planos CAD, audio.</p>
+        <p style="margin-top:10px;font-size:13px;color:var(--aumovio-muted)"><b>Reto:</b> indexación, metadatos, búsqueda.</p>
+      </div>
+    </div>
+    <div class="chart-wrap" style="margin-top:28px;height:240px">
+      <h3>Volumen relativo en una planta automotriz típica</h3>
+      <canvas id="typesChart"></canvas>
+    </div>
+  </section>
+
+  <!-- Slide 7: FAIR -->
+  <section class="slide">
+    <h2>Principios FAIR</h2>
+    <p class="subtitle">El estándar internacional para que los datos sean útiles más allá de quien los creó</p>
+    <div class="fair">
+      <div class="fair-card f">
+        <div class="letter">F</div>
+        <h3>Findable</h3>
+        <p>Localizable</p>
+        <p style="margin-top:10px">Tiene <b>nombre claro</b>, identificador único y metadatos que permiten encontrarlo en una búsqueda.</p>
+      </div>
+      <div class="fair-card a">
+        <div class="letter">A</div>
+        <h3>Accessible</h3>
+        <p>Accesible</p>
+        <p style="margin-top:10px">Está en un <b>sistema conocido</b>, con permisos definidos. Nadie debería tener "el único archivo" en su laptop.</p>
+      </div>
+      <div class="fair-card i">
+        <div class="letter">I</div>
+        <h3>Interoperable</h3>
+        <p>Interoperable</p>
+        <p style="margin-top:10px">Usa <b>formatos estándar</b> (CSV, JSON, PDF/A). Otros sistemas pueden leerlo sin conversiones raras.</p>
+      </div>
+      <div class="fair-card r">
+        <div class="letter">R</div>
+        <h3>Reusable</h3>
+        <p>Reutilizable</p>
+        <p style="margin-top:10px">Tiene <b>contexto y documentación</b>: ¿qué significa, cuándo se creó, quién lo validó? Para que otro pueda confiar.</p>
+      </div>
+    </div>
+    <p style="text-align:center;margin-top:28px;color:var(--aumovio-muted);font-size:14px">
+      💡 Si tu archivo cumple los 4, sobrevive a la rotación del personal.
+    </p>
+  </section>
+
+  <!-- Slide 8: Organización - antes vs después -->
+  <section class="slide">
+    <h2>Organización: antes vs después</h2>
+    <p class="subtitle">Mismo contenido, dos enfoques. ¿Cuál encuentras en 5 segundos?</p>
+    <div class="grid-2">
+      <div>
+        <h3 style="color:var(--aumovio-amber);margin-bottom:10px">❌ Como NO debe ser</h3>
+        <div class="tree">
+<span class="folder">📁 Documentos/</span>
+  <span class="bad">📄 reporte final FINAL v2 (1).xlsx</span>
+  <span class="bad">📄 reporte final FINAL v2 (1) copia.xlsx</span>
+  <span class="bad">📄 reporte_juan.xlsx</span>
+  <span class="bad">📄 reporte_juan_NUEVO.xlsx</span>
+  <span class="bad">📄 sin titulo.docx</span>
+  <span class="bad">📄 IMG_20251023_142511.jpg</span>
+  <span class="bad">📄 nuevo documento (3).pdf</span>
+  <span class="bad">📄 hola.txt</span>
+  <span class="bad">📄 mande este al cliente.pdf</span>
+        </div>
+      </div>
+      <div>
+        <h3 style="color:var(--aumovio-green);margin-bottom:10px">✅ Como SÍ debe ser</h3>
+        <div class="tree">
+<span class="folder">📁 2026/</span>
+  <span class="folder">  📁 Q2/</span>
+    <span class="folder">    📁 Calidad/</span>
+      <span class="folder">      📁 Línea-A03/</span>
+        <span class="good">        📄 2026-05-12_LineaA03_FPY_Reporte_v01.xlsx</span>
+        <span class="good">        📄 2026-05-12_LineaA03_FPY_Reporte_v02.xlsx</span>
+        <span class="good">        📄 2026-05-19_LineaA03_Scrap_Foto_001.jpg</span>
+      <span class="folder">      📁 Línea-B07/</span>
+    <span class="folder">    📁 Mantenimiento/</span>
+    <span class="folder">    📁 Producción/</span>
+        </div>
+        <p style="margin-top:14px;font-size:13px;color:var(--aumovio-muted)">
+          <b>Patrón:</b> <code style="color:var(--aumovio-red)">YYYY-MM-DD_Area_Proceso_Tipo_vNN.ext</code>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 9: Nomenclatura -->
+  <section class="slide">
+    <h2>Reglas de nomenclatura</h2>
+    <p class="subtitle">7 reglas que te ahorran horas (y reclamos)</p>
+    <table class="compare">
+      <thead>
+        <tr><th>Regla</th><th class="bad-col">❌ Evita</th><th class="good-col">✅ Usa</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>Fecha al inicio</b> (ISO 8601)</td><td class="bad-col">23-mayo-26, 5/23/26</td><td class="good-col">2026-05-23</td></tr>
+        <tr><td><b>Sin espacios</b> ni acentos</td><td class="bad-col">Producción Línea Á.xlsx</td><td class="good-col">Produccion_Linea_A.xlsx</td></tr>
+        <tr><td><b>Versión explícita</b></td><td class="bad-col">v2, FINAL, FINAL2, ultimo</td><td class="good-col">v01, v02, v03</td></tr>
+        <tr><td><b>Sin caracteres raros</b></td><td class="bad-col">/ \ : * ? &lt; &gt; |</td><td class="good-col">solo a-z 0-9 _ -</td></tr>
+        <tr><td><b>Nombre descriptivo</b></td><td class="bad-col">doc1, archivo, nuevo</td><td class="good-col">FPY_LineaA03</td></tr>
+        <tr><td><b>Iniciales del autor</b> al final</td><td class="bad-col">(sin autor)</td><td class="good-col">..._JGM.xlsx</td></tr>
+        <tr><td><b>Una sola fuente de verdad</b></td><td class="bad-col">copias en escritorio + USB</td><td class="good-col">SharePoint / OneDrive</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Slide 10: Calidad de datos -->
+  <section class="slide">
+    <h2>Calidad de datos</h2>
+    <p class="subtitle">6 dimensiones que definen si un dato sirve o estorba</p>
+    <div class="grid-2" style="margin-top:20px">
+      <div class="chart-wrap">
+        <h3>Auto-evaluación de tu área (ejemplo)</h3>
+        <canvas id="qualityChart"></canvas>
+      </div>
+      <div>
+        <ul class="checklist">
+          <li><b>Exactitud</b> — ¿el dato refleja la realidad? (un torque de 10 Nm es 10, no 100)</li>
+          <li><b>Completitud</b> — ¿están todos los campos? (¿faltan turnos sin registrar?)</li>
+          <li><b>Consistencia</b> — ¿coincide entre sistemas? (SAP dice X, MES dice Y)</li>
+          <li><b>Oportunidad</b> — ¿está a tiempo? (un reporte de ayer ya no sirve para hoy)</li>
+          <li><b>Unicidad</b> — ¿hay duplicados? (¿el mismo defecto contado dos veces?)</li>
+          <li><b>Validez</b> — ¿cumple el formato? (fecha como texto vs fecha real)</li>
+        </ul>
+        <p style="margin-top:18px;padding:14px;background:rgba(226,35,26,0.1);border-radius:6px;font-size:14px">
+          💡 <b>Garbage in → Garbage out.</b> Si los datos de entrada son malos, ningún BI o IA va a salvarte.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 11: Seguridad y clasificación -->
+  <section class="slide">
+    <h2>Seguridad y clasificación</h2>
+    <p class="subtitle">No todos los datos pueden tratarse igual — la sensibilidad define los controles</p>
+    <div class="class-grid">
+      <div class="class-card l1">
+        <div class="lvl">NIVEL 1</div>
+        <div class="name">🌐 Pública</div>
+        <div class="desc">Comunicados oficiales, sitio web, marketing.</div>
+        <div style="margin-top:10px;font-size:11px;opacity:0.85">Control: ninguno</div>
+      </div>
+      <div class="class-card l2">
+        <div class="lvl">NIVEL 2</div>
+        <div class="name">🏢 Interna</div>
+        <div class="desc">Procedimientos, manuales, organigramas.</div>
+        <div style="margin-top:10px;font-size:11px;opacity:0.85">Control: sólo empleados</div>
+      </div>
+      <div class="class-card l3">
+        <div class="lvl">NIVEL 3</div>
+        <div class="name">🔒 Confidencial</div>
+        <div class="desc">Costos, planos, datos de cliente, contratos.</div>
+        <div style="margin-top:10px;font-size:11px;opacity:0.85">Control: acceso por rol + NDA</div>
+      </div>
+      <div class="class-card l4">
+        <div class="lvl">NIVEL 4</div>
+        <div class="name">🛡 Restringida</div>
+        <div class="desc">Propiedad intelectual, datos personales, secretos comerciales.</div>
+        <div style="margin-top:10px;font-size:11px;opacity:0.85">Control: cifrado + bitácora</div>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top:28px">
+      <div class="card" style="border-left-color:var(--aumovio-red)">
+        <h3>⚠️ Riesgos comunes</h3>
+        <ul style="margin-top:8px;padding-left:18px">
+          <li>USBs sin cifrar con planos del cliente</li>
+          <li>Reenviar correos confidenciales fuera del dominio</li>
+          <li>WhatsApp para mandar fotos de procesos productivos</li>
+          <li>Compartir contraseñas "para que el otro turno entre"</li>
+        </ul>
+      </div>
+      <div class="card" style="border-left-color:var(--aumovio-green)">
+        <h3>✅ Reglas de oro</h3>
+        <ul class="checklist">
+          <li>Si no sabes el nivel, asume <b>Confidencial</b></li>
+          <li>Usa los canales oficiales (SharePoint, Teams)</li>
+          <li>Bloquea tu pantalla siempre (<span class="kbd">⊞ + L</span>)</li>
+          <li>Reporta incidentes en menos de 24 h</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 12: Buenas prácticas -->
+  <section class="slide">
+    <h2>10 buenas prácticas diarias</h2>
+    <p class="subtitle">Hábitos chicos, impacto grande</p>
+    <div class="grid-2">
+      <div class="practice"><div class="check">1</div><div><h4>Guarda en la nube oficial</h4><p>SharePoint / OneDrive, no en tu escritorio.</p></div></div>
+      <div class="practice"><div class="check">2</div><div><h4>Nombra con fecha ISO al inicio</h4><p>2026-05-23 ordena solo. 23-mayo no.</p></div></div>
+      <div class="practice"><div class="check">3</div><div><h4>Versiona con v01, v02, v03</h4><p>Nada de "FINAL_FINAL2_bueno".</p></div></div>
+      <div class="practice"><div class="check">4</div><div><h4>Una fuente de verdad</h4><p>Un archivo en un lugar. Comparte el link, no copias.</p></div></div>
+      <div class="practice"><div class="check">5</div><div><h4>Documenta lo que mides</h4><p>Unidad, fórmula, fuente. Quien venga después te lo agradecerá.</p></div></div>
+      <div class="practice"><div class="check">6</div><div><h4>Respalda lo crítico</h4><p>Regla 3-2-1: 3 copias, 2 medios, 1 fuera del sitio.</p></div></div>
+      <div class="practice"><div class="check">7</div><div><h4>Bloquea tu pantalla</h4><p>Cada vez que te paras, ⊞ + L. Siempre.</p></div></div>
+      <div class="practice"><div class="check">8</div><div><h4>Verifica el destinatario</h4><p>Antes de enviar, lee a quién va. "Responder a todos" causa incidentes.</p></div></div>
+      <div class="practice"><div class="check">9</div><div><h4>Borra duplicados</h4><p>Una vez al mes, limpia. Menos ruido = más velocidad.</p></div></div>
+      <div class="practice"><div class="check">10</div><div><h4>Pregunta cuando dudes</h4><p>Mejor un minuto preguntando que una hora corrigiendo.</p></div></div>
+    </div>
+  </section>
+
+  <!-- Slide 13: Quiz -->
+  <section class="slide">
+    <h2>Quiz rápido</h2>
+    <p class="subtitle">Verifica lo que aprendiste — 5 preguntas, sin trampa</p>
+    <div class="quiz" id="quiz">
+      <div class="quiz-score">Pregunta <b id="qNum">1</b> de <b>5</b> · Aciertos: <b id="qScore">0</b></div>
+      <div class="question" id="qText"></div>
+      <div id="qOpts"></div>
+      <div class="quiz-feedback" id="qFeed"></div>
+      <div class="quiz-nav">
+        <button class="btn" id="qNext" onclick="nextQuestion()" style="margin-left:auto">Siguiente →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       BLOQUE PRACTICO - EJERCICIOS DE EXCEL
+       ============================================================ -->
+
+  <!-- Slide: Portada bloque practico -->
+  <section class="slide title-slide">
+    <div class="eyebrow">PARTE PRACTICA · MODULO 02</div>
+    <h1>Ahora a las <span class="accent">manos</span><br/>en Excel</h1>
+    <p class="lead">6 ejercicios cortos para aterrizar lo que vimos: nomenclatura, limpieza, validacion, cruces, control de calidad y tablas dinamicas.</p>
+    <a class="download-cta" href="ejercicios_excel_aumovio.xlsx" download>
+      <span class="ico">X</span> Descargar workbook (ejercicios_excel_aumovio.xlsx)
+    </a>
+    <div class="title-meta">
+      <div><strong>Nivel</strong>Intermedio</div>
+      <div><strong>Tiempo</strong>~45 min</div>
+      <div><strong>Requiere</strong>Excel 2019+ o Microsoft 365</div>
+      <div><strong>Formato</strong>Hojas con datos + soluciones</div>
+    </div>
+  </section>
+
+  <!-- Slide: Resumen de ejercicios -->
+  <section class="slide">
+    <h2>Lo que vas a practicar</h2>
+    <p class="subtitle">Cada ejercicio aborda un concepto de la teoria y lo aterriza con datos reales de planta</p>
+    <table class="compare">
+      <thead><tr><th>#</th><th>Ejercicio</th><th>Concepto teorico</th><th>Funciones / Herramientas</th><th>Nivel</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>1</b></td>
+          <td>Nomenclatura ISO con formulas</td>
+          <td>Reglas de nombrado, FAIR-Findable</td>
+          <td><code>TEXTO</code> · <code>&amp;</code> (concatenacion)</td>
+          <td><span class="level-chip basic">basico</span></td>
+        </tr>
+        <tr>
+          <td><b>2</b></td>
+          <td>Limpieza de datos sucios</td>
+          <td>Calidad: exactitud + validez</td>
+          <td><code>ESPACIOS</code> · <code>LIMPIAR</code> · <code>NOMPROPIO</code> · <code>SUSTITUIR</code></td>
+          <td><span class="level-chip basic">basico</span></td>
+        </tr>
+        <tr>
+          <td><b>3</b></td>
+          <td>Validacion de datos</td>
+          <td>Calidad en captura, prevencion de errores</td>
+          <td>Datos &gt; Validacion · Listas · Rangos numericos · Fechas</td>
+          <td><span class="level-chip">medio</span></td>
+        </tr>
+        <tr>
+          <td><b>4</b></td>
+          <td>BUSCARX para cruce de catalogos</td>
+          <td>FAIR-Interoperable: una fuente de verdad</td>
+          <td><code>BUSCARX</code> / <code>BUSCARV</code> · <code>SI.ERROR</code></td>
+          <td><span class="level-chip">medio</span></td>
+        </tr>
+        <tr>
+          <td><b>5</b></td>
+          <td>Duplicados y anomalias</td>
+          <td>Calidad: unicidad + exactitud</td>
+          <td>Formato condicional · <code>CONTAR.SI</code> · reglas con formula</td>
+          <td><span class="level-chip">medio</span></td>
+        </tr>
+        <tr>
+          <td><b>6</b></td>
+          <td>Tabla dinamica de calidad</td>
+          <td>Analisis: de datos crudos a KPI</td>
+          <td>Insertar &gt; Tabla dinamica · Campos calculados</td>
+          <td><span class="level-chip adv">avanzado</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="margin-top:18px;color:var(--aumovio-muted);font-size:13px;text-align:center">
+      💡 Todas las hojas marcadas en <span style="color:var(--aumovio-red)">rojo</span> son ejercicios; las <span style="color:#0F7B3F">verdes</span> son soluciones (no las abras antes).
+    </p>
+  </section>
+
+  <!-- =============== EJERCICIO 1 =============== -->
+  <section class="slide">
+    <h2>Ejercicio 1 · Nomenclatura ISO con formulas</h2>
+    <div class="excel-banner">
+      <div class="xicon">X</div>
+      <div>
+        <div class="xtitle">Hoja: Ej1_Nomenclatura</div>
+        <div class="xmeta">Convierte datos sueltos en un nombre estandar y ordenable — patron YYYY-MM-DD_Area_Proceso_Tipo_vNN_AUT.xlsx</div>
+      </div>
+    </div>
+    <div class="ex-grid">
+      <div class="ex-section">
+        <h3>Pasos</h3>
+        <ol class="ex-steps">
+          <li>Abre la hoja <b>Ej1_Nomenclatura</b> del workbook.</li>
+          <li>En la celda <b>G8</b> escribe la formula que combine fecha + area + proceso + tipo + version + autor.</li>
+          <li>Usa <code>TEXTO(A8,"yyyy-mm-dd")</code> para forzar el formato ISO de la fecha.</li>
+          <li>Usa <code>TEXTO(E8,"00")</code> para que la version siempre tenga 2 digitos (v01, v02...).</li>
+          <li>Copia la formula de G8 hacia abajo hasta G15. Ordena por columna G y observa como queda cronologico solo.</li>
+        </ol>
+      </div>
+      <div class="ex-section">
+        <h3>Vista previa de la hoja</h3>
+        <div class="xls">
+          <div class="xls-tabs">
+            <div class="xls-tab active">Ej1_Nomenclatura</div>
+            <div class="xls-tab">Ej1_Solucion</div>
+          </div>
+          <div class="xls-formula">G8 = ?</div>
+          <table>
+            <thead><tr><th></th><th>A · Fecha</th><th>B · Area</th><th>C · Proceso</th><th>D · Tipo</th><th>E · Ver</th><th>F · Aut</th><th>G · Nombre</th></tr></thead>
+            <tbody>
+              <tr><td class="row-num">8</td><td>2026-05-12</td><td>Calidad</td><td>LineaA03</td><td>FPY</td><td>1</td><td>JGM</td><td class="input">←</td></tr>
+              <tr><td class="row-num">9</td><td>2026-05-12</td><td>Calidad</td><td>LineaA03</td><td>FPY</td><td>2</td><td>JGM</td><td class="input">←</td></tr>
+              <tr><td class="row-num">10</td><td>2026-05-19</td><td>Calidad</td><td>LineaA03</td><td>Scrap</td><td>1</td><td>MLR</td><td class="input">←</td></tr>
+              <tr><td class="row-num">11</td><td>2026-05-21</td><td>Produccion</td><td>LineaB07</td><td>OEE</td><td>1</td><td>RNH</td><td class="input">←</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="formula-box">
+      <span class="lbl">Solucion (G8)</span>
+      =TEXTO(A8,"yyyy-mm-dd")&amp;"_"&amp;B8&amp;"_"&amp;C8&amp;"_"&amp;D8&amp;"_v"&amp;TEXTO(E8,"00")&amp;"_"&amp;F8&amp;".xlsx"
+    </div>
+    <div class="takeaway"><b>Por que importa:</b> nombrar con fecha ISO al inicio hace que Windows y SharePoint los ordenen cronologicamente solos. La concatenacion automatica elimina el error humano.</div>
+  </section>
+
+  <!-- =============== EJERCICIO 2 =============== -->
+  <section class="slide">
+    <h2>Ejercicio 2 · Limpieza de datos sucios</h2>
+    <div class="excel-banner">
+      <div class="xicon">X</div>
+      <div>
+        <div class="xtitle">Hoja: Ej2_Limpieza</div>
+        <div class="xmeta">Normaliza nombres de operadores (espacios, mayusculas) y codigos de Work Center</div>
+      </div>
+    </div>
+    <div class="ex-grid">
+      <div class="ex-section">
+        <h3>Pasos</h3>
+        <ol class="ex-steps">
+          <li>En <b>B8</b> escribe la formula que limpie el nombre: quitar espacios extra, capitalizar la primera letra de cada palabra.</li>
+          <li>En <b>D8</b> normaliza el codigo W.C.: sin espacios, sin guiones (cambialos por <code>_</code>), todo en mayusculas.</li>
+          <li>Copia ambas formulas hacia abajo.</li>
+          <li>Compara con la hoja <b>Ej2_Solucion</b>.</li>
+        </ol>
+      </div>
+      <div class="ex-section">
+        <h3>Vista previa</h3>
+        <div class="xls">
+          <div class="xls-tabs">
+            <div class="xls-tab active">Ej2_Limpieza</div>
+          </div>
+          <div class="xls-formula">B8 = ?</div>
+          <table>
+            <thead><tr><th></th><th>A · Nombre crudo</th><th>B · Limpio</th><th>C · W.C. crudo</th><th>D · W.C. limpio</th></tr></thead>
+            <tbody>
+              <tr><td class="row-num">8</td><td class="problem">"  juan  garcia   "</td><td class="input">←</td><td class="problem">" 1112233 "</td><td class="input">←</td></tr>
+              <tr><td class="row-num">9</td><td class="problem">"MARIA   LOPEZ"</td><td class="input">←</td><td class="problem">"11-12-244"</td><td class="input">←</td></tr>
+              <tr><td class="row-num">10</td><td class="problem">"rOSa  martiNez"</td><td class="input">←</td><td class="problem">" wc 1112255 "</td><td class="input">←</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="formula-box">
+      <span class="lbl">Soluciones</span>
+      B8 = NOMPROPIO(ESPACIOS(LIMPIAR(A8)))<br/>
+      D8 = MAYUSC(SUSTITUIR(SUSTITUIR(SUSTITUIR(ESPACIOS(LIMPIAR(C8))," ",""),"-","_"),"WC",""))
+    </div>
+    <div class="takeaway"><b>Anidacion:</b> las funciones de texto se combinan de adentro hacia afuera. <code>LIMPIAR</code> quita caracteres no imprimibles, <code>ESPACIOS</code> normaliza espacios, <code>NOMPROPIO</code> capitaliza.</div>
+  </section>
+
+  <!-- =============== EJERCICIO 3 =============== -->
+  <section class="slide">
+    <h2>Ejercicio 3 · Validacion de datos</h2>
+    <div class="excel-banner">
+      <div class="xicon">X</div>
+      <div>
+        <div class="xtitle">Hoja: Ej3_Validacion</div>
+        <div class="xmeta">Configura listas desplegables y reglas numericas para prevenir errores en captura</div>
+      </div>
+    </div>
+    <div class="ex-grid">
+      <div class="ex-section">
+        <h3>Pasos</h3>
+        <ol class="ex-steps">
+          <li>Selecciona <b>B8:B12</b> → <i>Datos &gt; Validacion de datos &gt; Lista</i> y usa el rango <code>=$J$8:$J$11</code> (catalogo Plantas).</li>
+          <li>Repite con <b>C8:C12</b> usando <code>=$K$8:$K$11</code> (Areas).</li>
+          <li>En <b>E8:E12</b> (Torque): regla <i>Numero entero entre 0 y 30</i>. Captura un valor fuera del rango y observa el error.</li>
+          <li>En <b>F8:F12</b> (Fecha): regla <i>Fecha entre 2026-01-01 y HOY()</i>.</li>
+          <li>La columna <b>G</b> ya tiene una formula que indica si toda la fila esta completa.</li>
+        </ol>
+      </div>
+      <div class="ex-section">
+        <h3>Vista previa</h3>
+        <div class="xls">
+          <div class="xls-tabs"><div class="xls-tab active">Ej3_Validacion</div></div>
+          <div class="xls-formula">B8 → Datos &gt; Validacion &gt; Lista</div>
+          <table>
+            <thead><tr><th></th><th>A · Operador</th><th>B · Planta ▼</th><th>C · Area ▼</th><th>D · Linea</th><th>E · Torque</th><th>F · Fecha</th></tr></thead>
+            <tbody>
+              <tr><td class="row-num">8</td><td>J. Garcia</td><td class="input">▼</td><td class="input">▼</td><td>A03</td><td class="input">0-30</td><td class="input">📅</td></tr>
+              <tr><td class="row-num">9</td><td>M. Lopez</td><td class="input">▼</td><td class="input">▼</td><td>B07</td><td class="input">0-30</td><td class="input">📅</td></tr>
+              <tr><td class="row-num">10</td><td>R. Martinez</td><td class="input">▼</td><td class="input">▼</td><td>A03</td><td class="input">0-30</td><td class="input">📅</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="takeaway" style="margin-top:14px"><b>Reto bonus:</b> agrega un mensaje de entrada en la regla del torque para que aparezca "Rango 0-30 Nm" al hacer click en la celda.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============== EJERCICIO 4 =============== -->
+  <section class="slide">
+    <h2>Ejercicio 4 · BUSCARX cruce con catalogo</h2>
+    <div class="excel-banner">
+      <div class="xicon">X</div>
+      <div>
+        <div class="xtitle">Hojas: Ej4_Catalogo_WC + Ej4_Mediciones</div>
+        <div class="xmeta">Cruza el numero de Work Center con la tabla maestra para traer linea, planta y tipo</div>
+      </div>
+    </div>
+    <div class="ex-grid">
+      <div class="ex-section">
+        <h3>Pasos</h3>
+        <ol class="ex-steps">
+          <li>Abre la hoja <b>Ej4_Mediciones</b>. La columna <b>A</b> tiene el W.C., faltan C, D, E.</li>
+          <li>En <b>C8</b> escribe BUSCARX para traer la <i>Linea</i> desde el catalogo.</li>
+          <li>En <b>D8</b> haz lo mismo para <i>Planta</i> y en <b>E8</b> para <i>Tipo</i>.</li>
+          <li>Usa el 4to argumento de BUSCARX para devolver <code>"No encontrado"</code> en lugar de #N/A.</li>
+          <li>Copia hacia abajo. Observa la fila con W.C. <code>9999999</code> (caso de prueba).</li>
+        </ol>
+      </div>
+      <div class="ex-section">
+        <h3>Vista previa</h3>
+        <div class="xls">
+          <div class="xls-tabs"><div class="xls-tab">Catalogo_WC</div><div class="xls-tab active">Ej4_Mediciones</div></div>
+          <div class="xls-formula">C8 = ?</div>
+          <table>
+            <thead><tr><th></th><th>A · W.C.</th><th>B · Fecha</th><th>C · Linea</th><th>D · Planta</th><th>E · Tipo</th><th>F · Valor</th></tr></thead>
+            <tbody>
+              <tr><td class="row-num">8</td><td>1112233</td><td>2026-05-20</td><td class="input">←</td><td class="input">←</td><td class="input">←</td><td>8.5</td></tr>
+              <tr><td class="row-num">9</td><td>1112277</td><td>2026-05-20</td><td class="input">←</td><td class="input">←</td><td class="input">←</td><td>9.1</td></tr>
+              <tr><td class="row-num">16</td><td>9999999</td><td>2026-05-22</td><td class="input">←</td><td class="input">←</td><td class="input">←</td><td>7.1</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="formula-box">
+      <span class="lbl">Solucion (C8) — moderno</span>
+      =BUSCARX(A8, Ej4_Catalogo_WC!$A$5:$A$14, Ej4_Catalogo_WC!$B$5:$B$14, "No encontrado")
+      <br/><br/>
+      <span class="lbl">Fallback (Excel 2019)</span>
+      =SI.ERROR(BUSCARV(A8, Ej4_Catalogo_WC!$A$5:$D$14, 2, FALSO), "No encontrado")
+    </div>
+  </section>
+
+  <!-- =============== EJERCICIO 5 =============== -->
+  <section class="slide">
+    <h2>Ejercicio 5 · Duplicados y anomalias</h2>
+    <div class="excel-banner">
+      <div class="xicon">X</div>
+      <div>
+        <div class="xtitle">Hoja: Ej5_Duplicados</div>
+        <div class="xmeta">Usa formato condicional para encontrar errores que se pierden a simple vista</div>
+      </div>
+    </div>
+    <div class="ex-grid">
+      <div class="ex-section">
+        <h3>Pasos</h3>
+        <ol class="ex-steps">
+          <li>Selecciona <b>A8:A30</b> → <i>Inicio &gt; Formato Condicional &gt; Resaltar &gt; Valores Duplicados</i>. Las series repetidas se pintan en rojo.</li>
+          <li>Selecciona <b>D8:D30</b> → <i>Nueva regla &gt; Usar formula</i>. Escribe <code>=O(D8&lt;7, D8&gt;9.5)</code> y asigna fondo amarillo.</li>
+          <li>La columna <b>F</b> (Veces) ya cuenta cuantas veces aparece cada serie usando <code>CONTAR.SI</code>.</li>
+          <li>Filtra por Veces &gt; 1 y haz una lista de las series problematicas.</li>
+        </ol>
+      </div>
+      <div class="ex-section">
+        <h3>Vista previa (ya con formato)</h3>
+        <div class="xls">
+          <div class="xls-tabs"><div class="xls-tab active">Ej5_Duplicados</div></div>
+          <div class="xls-formula">F8 = CONTAR.SI($A$8:$A$30,A8)</div>
+          <table>
+            <thead><tr><th></th><th>A · Serie</th><th>B · Fecha</th><th>C · Op</th><th>D · Torque</th><th>F · Veces</th></tr></thead>
+            <tbody>
+              <tr><td class="row-num">8</td><td class="dup">SN-00012</td><td>2026-05-20</td><td>JGM</td><td>8.5</td><td>3</td></tr>
+              <tr><td class="row-num">9</td><td>SN-00013</td><td>2026-05-20</td><td>JGM</td><td class="anom">9.7</td><td>1</td></tr>
+              <tr><td class="row-num">12</td><td class="dup">SN-00012</td><td>2026-05-21</td><td>RNH</td><td>8.4</td><td>3</td></tr>
+              <tr><td class="row-num">13</td><td>SN-00016</td><td>2026-05-21</td><td>RNH</td><td class="anom">6.8</td><td>1</td></tr>
+              <tr><td class="row-num">18</td><td>SN-00020</td><td>2026-05-22</td><td>JGM</td><td class="anom">10.1</td><td>1</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="takeaway"><b>Tip:</b> en una hoja real, ordena por la columna "Veces" descendente para concentrarte primero en las series que mas se repiten. Usualmente esconden un escaneo doble o un copy/paste accidental.</div>
+  </section>
+
+  <!-- =============== EJERCICIO 6 =============== -->
+  <section class="slide">
+    <h2>Ejercicio 6 · Tabla dinamica de calidad</h2>
+    <div class="excel-banner">
+      <div class="xicon">X</div>
+      <div>
+        <div class="xtitle">Hoja: Ej6_Calidad</div>
+        <div class="xmeta">De ~300 filas de capturas crudas a un dashboard de % de defectos por linea y turno</div>
+      </div>
+    </div>
+    <div class="ex-grid">
+      <div class="ex-section">
+        <h3>Pasos</h3>
+        <ol class="ex-steps">
+          <li>Click en cualquier celda dentro de la tabla → <i>Insertar &gt; Tabla dinamica &gt; Nueva hoja</i>.</li>
+          <li>Arrastra <b>Linea</b> a FILAS y <b>Turno</b> a COLUMNAS.</li>
+          <li>Arrastra <b>Piezas</b> y <b>Defectos</b> a VALORES (Suma).</li>
+          <li><i>Analizar Pivot &gt; Campos, elementos y conjuntos &gt; Campo calculado</i>. Nombre: <b>% Def</b>. Formula: <code>= Defectos / Piezas</code>.</li>
+          <li>Da formato porcentaje a la columna % Def. Aplica formato condicional (escala roja-verde) para detectar los peores cruces.</li>
+        </ol>
+      </div>
+      <div class="ex-section">
+        <h3>Resultado esperado</h3>
+        <div class="xls">
+          <div class="xls-tabs"><div class="xls-tab">Datos</div><div class="xls-tab active">Pivot</div></div>
+          <div class="xls-formula">Campo calculado: % Def = Defectos / Piezas</div>
+          <table>
+            <thead><tr><th>Linea</th><th>T1 % Def</th><th>T2 % Def</th><th>T3 % Def</th><th>Total</th></tr></thead>
+            <tbody>
+              <tr><td>LineaA03</td><td>2.8%</td><td class="anom">4.1%</td><td>3.0%</td><td>3.3%</td></tr>
+              <tr><td>LineaB07</td><td>3.1%</td><td>2.5%</td><td class="anom">4.7%</td><td>3.4%</td></tr>
+              <tr><td>LineaC11</td><td>2.2%</td><td>2.9%</td><td>3.1%</td><td>2.7%</td></tr>
+              <tr><td>LineaD22</td><td class="dup">5.2%</td><td>3.6%</td><td>3.8%</td><td>4.2%</td></tr>
+              <tr><td>LineaE05</td><td>2.6%</td><td>2.4%</td><td>2.9%</td><td>2.6%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="takeaway" style="margin-top:14px"><b>Insight de negocio:</b> con el pivot inmediatamente ves que LineaD22 T1 y LineaB07 T3 son outliers. Sin pivot, esos picos quedaban escondidos en ~300 filas.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============== CIERRE BLOQUE PRACTICO =============== -->
+  <section class="slide">
+    <h2>Checklist de cierre del bloque practico</h2>
+    <p class="subtitle">Antes de salir, asegurate que dominas estos puntos</p>
+    <div class="grid-2">
+      <div>
+        <ul class="checklist">
+          <li>Puedo construir un nombre estandar con <code>TEXTO</code> y <code>&amp;</code></li>
+          <li>Se limpiar texto con <code>ESPACIOS</code>, <code>LIMPIAR</code>, <code>NOMPROPIO</code>, <code>SUSTITUIR</code></li>
+          <li>Se configurar validacion de datos (lista, numero, fecha)</li>
+          <li>Uso <code>BUSCARX</code> con manejo de "no encontrado"</li>
+          <li>Aplico formato condicional con formula propia</li>
+          <li>Construyo una tabla dinamica con campo calculado</li>
+        </ul>
+      </div>
+      <div class="card" style="border-left-color:var(--aumovio-accent)">
+        <h3 style="color:var(--aumovio-accent)">🚀 Siguientes pasos sugeridos</h3>
+        <p style="margin-top:8px">Cuando estos 6 ejercicios ya te resulten obvios, sube de nivel:</p>
+        <ul class="checklist" style="margin-top:10px">
+          <li>Power Query — para automatizar limpieza de archivos recurrentes</li>
+          <li>Tablas estructuradas (Ctrl+T) y referencias estructuradas</li>
+          <li>Funciones de arreglo dinamico (<code>FILTRAR</code>, <code>UNICOS</code>, <code>ORDENAR</code>)</li>
+          <li>Power Pivot + DAX para modelos de datos mas grandes</li>
+          <li>Conexion directa a SAP, Pulse o tu data lake con M Language</li>
+        </ul>
+      </div>
+    </div>
+    <p style="text-align:center;margin-top:24px;color:var(--aumovio-muted);font-size:13px">
+      📥 <b>Recordatorio:</b> el archivo <code style="color:var(--aumovio-red)">ejercicios_excel_aumovio.xlsx</code> incluye hojas de solucion (en verde). Solo abrelas <b>despues</b> de intentar.
+    </p>
+  </section>
+
+  <!-- Slide 14: Cierre -->
+  <section class="slide end-slide">
+    <div class="eyebrow" style="color:var(--aumovio-red);letter-spacing:4px;font-weight:700;font-size:13px">GRACIAS</div>
+    <h1>Los datos son <span class="accent">tuyos</span>.<br/>Cuídalos como tales.</h1>
+    <p class="lead" style="font-size:20px;color:var(--aumovio-muted);max-width:700px;margin-top:20px">
+      Cada archivo bien nombrado, cada respaldo a tiempo, cada permiso revisado — es una decisión más rápida mañana.
+    </p>
+    <div style="margin-top:40px;display:flex;gap:24px;color:var(--aumovio-muted);font-size:14px">
+      <div><b style="color:var(--aumovio-text)">¿Preguntas?</b><br/>data.governance@aumovio.com</div>
+      <div><b style="color:var(--aumovio-text)">Recursos</b><br/>intranet/training/datos</div>
+      <div><b style="color:var(--aumovio-text)">Reportar incidentes</b><br/>itsec@aumovio.com</div>
+    </div>
+    <p style="margin-top:50px;color:var(--aumovio-muted);font-size:12px">
+      Usa <span class="kbd">←</span> <span class="kbd">→</span> para navegar · <span class="kbd">F</span> para pantalla completa · <span class="kbd">D</span> para dashboard
+    </p>
+  </section>
+
+</div>
+
+<div class="bottombar">
+  <button class="btn" onclick="prev()">← Anterior</button>
+  <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+  <button class="btn" onclick="next()">Siguiente →</button>
+  <div class="pager" id="pager">1 / 23</div>
+</div>
+
+<script>
+// ============ NAVIGATION ============
+const slides = document.querySelectorAll('.slide');
+let current = 0;
+
+function go(i) {
+  if (i < 0 || i >= slides.length) return;
+  slides[current].classList.remove('active');
+  current = i;
+  slides[current].classList.add('active');
+  document.getElementById('pager').textContent = `${current+1} / ${slides.length}`;
+  document.getElementById('progressBar').style.width = `${((current+1)/slides.length)*100}%`;
+}
+function next() { go(current+1); }
+function prev() { go(current-1); }
+
+document.addEventListener('keydown', e => {
+  if (document.body.classList.contains('dashboard-mode')) return;
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); next(); }
+  if (e.key === 'ArrowLeft'  || e.key === 'PageUp') { e.preventDefault(); prev(); }
+  if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+  if (e.key === 'd' || e.key === 'D') setMode(document.body.classList.contains('dashboard-mode') ? 'slide' : 'dash');
+  if (e.key === 'Home') go(0);
+  if (e.key === 'End')  go(slides.length-1);
+});
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+  else document.exitFullscreen();
+}
+
+function setMode(mode) {
+  if (mode === 'dash') {
+    document.body.classList.add('dashboard-mode');
+    document.getElementById('btn-dash').classList.add('active');
+    document.getElementById('btn-slide').classList.remove('active');
+    initDashboardCharts();
+  } else {
+    document.body.classList.remove('dashboard-mode');
+    document.getElementById('btn-slide').classList.add('active');
+    document.getElementById('btn-dash').classList.remove('active');
+  }
+}
+
+// ============ LIFECYCLE STAGES ============
+const stageData = {
+  1: { title: '⚙️ Generar', body: 'Una máquina mide, un operador registra, un sensor emite. <b>Quién:</b> equipos, personas, sistemas. <b>Riesgo:</b> dato no se captura o se pierde en papel.' },
+  2: { title: '📥 Capturar', body: 'El dato entra a un sistema (MES, SAP, Excel, formulario). <b>Riesgo:</b> errores de tecleo, unidades equivocadas, registros incompletos.' },
+  3: { title: '💾 Almacenar', body: 'Se guarda donde otros lo puedan encontrar: base de datos, SharePoint, data lake. <b>Riesgo:</b> archivos en escritorios personales, sin respaldo.' },
+  4: { title: '🔄 Procesar', body: 'Se limpia, se combina, se transforma. <b>Ejemplo:</b> ETL, scripts Python, fórmulas en Excel. <b>Riesgo:</b> transformaciones no documentadas que nadie puede repetir.' },
+  5: { title: '📊 Analizar', body: 'Se vuelve insight: KPIs, dashboards, reportes, modelos de IA. <b>Riesgo:</b> conclusiones basadas en datos malos = decisiones malas.' },
+  6: { title: '📦 Archivar / Eliminar', body: 'Datos viejos pasan a frío o se eliminan según política de retención. <b>Riesgo:</b> guardar todo para siempre (costo, riesgo legal) o eliminar lo que debías conservar.' },
+};
+function selectStage(n) {
+  document.querySelectorAll('.stage-step').forEach((el,i) => {
+    el.classList.toggle('selected', i+1 === n);
+  });
+  const d = stageData[n];
+  document.getElementById('stageDetail').innerHTML = `<h3>${d.title}</h3><p>${d.body}</p>`;
+}
+
+// ============ QUIZ ============
+const questions = [
+  {
+    q: '¿Cuál de estos nombres de archivo sigue las buenas prácticas?',
+    opts: [
+      'Reporte FINAL v2 (1) JUAN.xlsx',
+      '2026-05-23_LineaA03_FPY_Reporte_v02.xlsx',
+      'reporte mayo último 2026.xlsx',
+      'doc1.xlsx',
+    ],
+    correct: 1,
+    explain: 'Fecha ISO al inicio, sin espacios, descriptivo y con versión explícita. Encontrable y ordenable automáticamente.'
+  },
+  {
+    q: 'Recibes un plano del cliente sin clasificar. ¿Qué nivel le asignas?',
+    opts: [
+      'Pública — total, ya lo tengo yo',
+      'Interna — total, somos empleados',
+      'Confidencial — por default, ante la duda',
+      'No le pongo nivel hasta confirmar',
+    ],
+    correct: 2,
+    explain: 'La regla de oro: si no sabes, asume Confidencial. Es más fácil "bajar" que recuperar un dato fugado.'
+  },
+  {
+    q: '¿Qué significa la "I" en los principios FAIR?',
+    opts: [
+      'Informal',
+      'Inmediato',
+      'Interoperable',
+      'Individual',
+    ],
+    correct: 2,
+    explain: 'Interoperable: usa formatos estándar (CSV, JSON, PDF/A) para que otros sistemas puedan leer tus datos sin conversiones extrañas.'
+  },
+  {
+    q: '¿Cuál NO es una dimensión de calidad de datos?',
+    opts: [
+      'Exactitud',
+      'Completitud',
+      'Popularidad',
+      'Oportunidad',
+    ],
+    correct: 2,
+    explain: 'Las 6 dimensiones son: exactitud, completitud, consistencia, oportunidad, unicidad y validez. La popularidad de un dato no lo hace correcto.'
+  },
+  {
+    q: '¿Cuál es la regla 3-2-1 de respaldo?',
+    opts: [
+      '3 copias, 2 medios distintos, 1 fuera del sitio',
+      '3 minutos, 2 minutos, 1 minuto',
+      '3 personas pueden ver, 2 editar, 1 borrar',
+      '3 carpetas, 2 niveles, 1 archivo',
+    ],
+    correct: 0,
+    explain: 'Es el estándar internacional para evitar pérdida total: tres copias en dos medios diferentes y al menos una fuera del sitio físico.'
+  }
+];
+let qIdx = 0, qScore = 0, qAnswered = false;
+function renderQuestion() {
+  const q = questions[qIdx];
+  document.getElementById('qNum').textContent = qIdx+1;
+  document.getElementById('qScore').textContent = qScore;
+  document.getElementById('qText').textContent = q.q;
+  const opts = document.getElementById('qOpts');
+  opts.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    const b = document.createElement('button');
+    b.className = 'quiz-opt';
+    b.textContent = opt;
+    b.onclick = () => answer(i);
+    opts.appendChild(b);
+  });
+  document.getElementById('qFeed').className = 'quiz-feedback';
+  document.getElementById('qFeed').textContent = '';
+  document.getElementById('qNext').textContent = qIdx === questions.length-1 ? 'Reiniciar quiz' : 'Siguiente →';
+  qAnswered = false;
+}
+function answer(i) {
+  if (qAnswered) return;
+  qAnswered = true;
+  const q = questions[qIdx];
+  const opts = document.querySelectorAll('.quiz-opt');
+  opts.forEach((el,j) => {
+    el.disabled = true;
+    if (j === q.correct) el.classList.add('correct');
+    else if (j === i)    el.classList.add('wrong');
+  });
+  const feed = document.getElementById('qFeed');
+  if (i === q.correct) {
+    qScore++;
+    feed.className = 'quiz-feedback ok show';
+    feed.innerHTML = '✅ <b>¡Correcto!</b> ' + q.explain;
+  } else {
+    feed.className = 'quiz-feedback no show';
+    feed.innerHTML = '❌ <b>Incorrecto.</b> ' + q.explain;
+  }
+  document.getElementById('qScore').textContent = qScore;
+}
+function nextQuestion() {
+  if (qIdx === questions.length-1) {
+    if (!qAnswered) return;
+    alert(`Resultado final: ${qScore} de ${questions.length} correctas\n\n${qScore >= 4 ? '🎉 ¡Excelente! Estás listo.' : '📚 Repasa los puntos clave y vuelve a intentarlo.'}`);
+    qIdx = 0; qScore = 0;
+  } else {
+    if (!qAnswered) { alert('Selecciona una respuesta primero.'); return; }
+    qIdx++;
+  }
+  renderQuestion();
+}
+renderQuestion();
+
+// ============ CHARTS ============
+Chart.defaults.color = '#9CA3AF';
+Chart.defaults.borderColor = '#2a2a30';
+Chart.defaults.font.family = "'Segoe UI', sans-serif";
+
+// Types pie (slide 6)
+new Chart(document.getElementById('typesChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['No estructurados (correos, PDFs, fotos)', 'Estructurados (SAP, SQL, Excel)', 'Semi-estructurados (JSON, logs, XML)'],
+    datasets: [{
+      data: [70, 20, 10],
+      backgroundColor: ['#E2231A', '#22C55E', '#F59E0B'],
+      borderWidth: 0
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'right' } }
+  }
+});
+
+// Quality radar (slide 10)
+new Chart(document.getElementById('qualityChart'), {
+  type: 'radar',
+  data: {
+    labels: ['Exactitud', 'Completitud', 'Consistencia', 'Oportunidad', 'Unicidad', 'Validez'],
+    datasets: [{
+      label: 'Hoy',
+      data: [70, 55, 40, 65, 50, 60],
+      borderColor: '#E2231A',
+      backgroundColor: 'rgba(226,35,26,0.2)',
+      borderWidth: 2,
+      pointBackgroundColor: '#E2231A',
+    },{
+      label: 'Meta',
+      data: [90, 90, 85, 90, 85, 90],
+      borderColor: '#22C55E',
+      backgroundColor: 'rgba(34,197,94,0.1)',
+      borderWidth: 2, borderDash: [5,5],
+      pointBackgroundColor: '#22C55E',
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      r: {
+        beginAtZero: true, max: 100,
+        grid: { color: '#2a2a30' },
+        angleLines: { color: '#2a2a30' },
+        pointLabels: { color: '#F4F4F5', font: { size: 12 } }
+      }
+    }
+  }
+});
+
+let dashCharted = false;
+function initDashboardCharts() {
+  if (dashCharted) return;
+  dashCharted = true;
+
+  new Chart(document.getElementById('dashChart1'), {
+    type: 'bar',
+    data: {
+      labels: ['No estructurados', 'Estructurados', 'Semi-estructurados'],
+      datasets: [{
+        label: '% del total',
+        data: [70, 20, 10],
+        backgroundColor: ['#E2231A', '#22C55E', '#F59E0B'],
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { grid: { color: '#2a2a30' }, ticks: { callback: v => v+'%' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('dashChart2'), {
+    type: 'line',
+    data: {
+      labels: ['2020','2021','2022','2023','2024','2025','2026'],
+      datasets: [{
+        label: 'Empresas con gobierno de datos formal (%)',
+        data: [28, 34, 41, 49, 56, 62, 68],
+        borderColor: '#E2231A',
+        backgroundColor: 'rgba(226,35,26,0.15)',
+        fill: true,
+        tension: 0.35,
+        borderWidth: 3,
+        pointRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { grid: { color: '#2a2a30' }, ticks: { callback: v => v+'%' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('dashChart3'), {
+    type: 'radar',
+    data: {
+      labels: ['Exactitud', 'Completitud', 'Consistencia', 'Oportunidad', 'Unicidad', 'Validez'],
+      datasets: [{
+        label: 'Estado actual',
+        data: [70, 55, 40, 65, 50, 60],
+        borderColor: '#E2231A',
+        backgroundColor: 'rgba(226,35,26,0.2)',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        r: { beginAtZero: true, max: 100, grid: { color: '#2a2a30' }, angleLines: { color: '#2a2a30' } }
+      }
+    }
+  });
+}
+
+// Init mode
+setMode('slide');
+go(0);
+</script>
+
+</body>
+</html>
